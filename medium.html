@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe (Intermediate)</title>
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="board" id="board"></div>
+        <div class="result" id="result"></div>
+        <button class="restart" id="restart">Restart</button>
+    </div>
+    <script>
+        const boardElement = document.getElementById('board');
+        const resultElement = document.getElementById('result');
+        const restartButton = document.getElementById('restart');
+        let board;
+        let isUserTurnFirst = true;
+
+        const initializeBoard = () => {
+            board = [
+                [0, 0, 0],
+                [0, 0, 0],
+                [0, 0, 0]
+            ];
+        };
+
+        const checkWin = (board) => {
+            for (const player of [1, -1]) {
+                if (board.some(row => row.every(cell => cell === player)) ||
+                    board[0].some((_, i) => board.every(row => row[i] === player)) ||
+                    board.every((row, i) => row[i] === player) ||
+                    board.every((row, i) => row[2 - i] === player)) {
+                    return player;
+                }
+            }
+            return 0;
+        };
+
+        const checkDraw = (board) => {
+            return board.every(row => row.every(cell => cell !== 0));
+        };
+
+        const getValidMoves = (board) => {
+            const moves = [];
+            board.forEach((row, i) => row.forEach((cell, j) => {
+                if (cell === 0) moves.push([i, j]);
+            }));
+            return moves;
+        };
+
+        const minimax = (board, depth, isMaximizing) => {
+            const winner = checkWin(board);
+            if (winner !== 0) return winner;
+            if (checkDraw(board)) return 0;
+
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (const [i, j] of getValidMoves(board)) {
+                    board[i][j] = 1;
+                    const score = minimax(board, depth + 1, false);
+                    board[i][j] = 0;
+                    bestScore = Math.max(bestScore, score);
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (const [i, j] of getValidMoves(board)) {
+                    board[i][j] = -1;
+                    const score = minimax(board, depth + 1, true);
+                    board[i][j] = 0;
+                    bestScore = Math.min(bestScore, score);
+                }
+                return bestScore;
+            }
+        };
+
+        const bestMove = (board) => {
+            let bestScore = -Infinity;
+            let move;
+            for (const [i, j] of getValidMoves(board)) {
+                board[i][j] = 1;
+                const score = minimax(board, 0, false);
+                board[i][j] = 0;
+                if (score > bestScore) {
+                    bestScore = score;
+                    move = [i, j];
+                }
+            }
+            return move;
+        };
+
+        const intermediateMove = (board) => {
+            return Math.random() < 0.5 ? randomMove(board) : bestMove(board);
+        };
+
+        const randomMove = (board) => {
+            const moves = getValidMoves(board);
+            return moves[Math.floor(Math.random() * moves.length)];
+        };
+
+        const aiMove = () => {
+            const move = intermediateMove(board);
+            if (move) {
+                board[move[0]][move[1]] = 1;
+                updateBoard();
+                if (checkWin(board) === 1) {
+                    showResult("AI wins!");
+                    return;
+                }
+                if (checkDraw(board)) {
+                    showResult("It's a draw!");
+                    return;
+                }
+            }
+        };
+
+        const createBoard = () => {
+            boardElement.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.addEventListener('click', () => playerMove(i, j));
+                    boardElement.appendChild(cell);
+                }
+            }
+        };
+
+        const playerMove = (i, j) => {
+            if (board[i][j] === 0) {
+                board[i][j] = -1;
+                updateBoard();
+                if (checkWin(board) === -1) {
+                    showResult("You win!");
+                    return;
+                }
+                if (checkDraw(board)) {
+                    showResult("It's a draw!");
+                    return;
+                }
+                aiMove();
+            }
+        };
+
+        const updateBoard = () => {
+            Array.from(boardElement.children).forEach((cell, index) => {
+                const i = Math.floor(index / 3);
+                const j = index % 3;
+                cell.textContent = board[i][j] === 1 ? 'X' : board[i][j] === -1 ? 'O' : '';
+                cell.style.pointerEvents = board[i][j] === 0 ? 'auto' : 'none';
+            });
+        };
+
+        const showResult = (result) => {
+            resultElement.textContent = result;
+            Array.from(boardElement.children).forEach(cell => cell.style.pointerEvents = 'none');
+        };
+
+        const restartGame = () => {
+            initializeBoard();
+            createBoard();
+            resultElement.textContent = '';
+            if (isUserTurnFirst) {
+                isUserTurnFirst = false;
+            } else {
+                isUserTurnFirst = true;
+                aiMove();
+            }
+        };
+
+        restartButton.addEventListener('click', restartGame);
+
+        initializeBoard();
+        createBoard();
+    </script>
+</body>
+</html>
